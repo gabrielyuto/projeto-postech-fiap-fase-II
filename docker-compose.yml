@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  auth-service:
+    build: ./auth-service-main
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    env_file:
+       - ./auth-service-main/.env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+volumes:
+  postgres_data:
+
+networks:
+  fiap-docker-desafio-network:
+

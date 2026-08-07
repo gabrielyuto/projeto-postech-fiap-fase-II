@@ -2,3 +2,5 @@ Flask==2.2.2
 gunicorn==20.1.0
 python-dotenv==0.21.0
 boto3==1.26.50
+Werkzeug==2.3.7
+setuptools==80.9.0
