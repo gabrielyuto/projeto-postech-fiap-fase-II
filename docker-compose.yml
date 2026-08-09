@@ -1,6 +1,6 @@
-version: "3.9"
-
 services:
+
+  # Auth Service
   auth-service:
     build: ./auth-service-main
     container_name: auth-service
@@ -13,6 +13,23 @@ services:
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
+
+  # Targeting Service
+  targeting-service:
+    build: ./targeting-service-main
+    container_name: targeting-service
+    ports:
+      - "8003:8003"
+    env_file:
+       - ./targeting-service-main/.env
+    depends_on:
+      - auth-service
+      - postgres
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+  # Postgres Service    
   postgres:
     image: postgres:15
     container_name: postgres
