@@ -1,8 +1,5 @@
-__pycache__/
-*.pyc
-*.pyo
+.env
+*.md
 .git/
 .gitignore
-*.md
-db/
-.env
+evaluation-service   # binário local que não deve entrar no contexto
