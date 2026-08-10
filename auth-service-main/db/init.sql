@@ -1,3 +1,7 @@
+CREATE DATABASE auth_db;
+
+\c auth_db;
+
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
