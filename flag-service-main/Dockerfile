@@ -39,4 +39,7 @@ USER appuser
 
 EXPOSE 8002
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"
+
 CMD ["gunicorn", "--bind", "0.0.0.0:8002", "app:app"]
