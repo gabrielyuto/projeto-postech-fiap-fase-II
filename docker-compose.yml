@@ -44,6 +44,22 @@ services:
     networks:
       - fiap-docker-desafio-network
 
+  # Evaluation Service
+  evaluation-service:
+    build: ./evaluation-service-main
+    container_name: evaluation-service
+    ports:
+      - "8004:8004"
+    env_file:
+       - ./evaluation-service-main/.env
+    depends_on:
+      - flag-service
+      - targeting-service
+      - redis
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
   # Postgres Service    
   postgres:
     image: postgres:15
@@ -66,6 +82,16 @@ services:
       timeout: 3s
       retries: 5
     
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+  # Redis Service
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
