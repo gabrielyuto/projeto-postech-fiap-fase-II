@@ -9,7 +9,8 @@ services:
     env_file:
        - ./auth-service-main/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy    
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
@@ -23,8 +24,10 @@ services:
     env_file:
        - ./targeting-service-main/.env
     depends_on:
-      - auth-service
-      - postgres
+      flag-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
@@ -38,8 +41,10 @@ services:
     env_file:
        - ./flag-service-main/.env
     depends_on:
-      - postgres
-      - auth-service
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
@@ -53,12 +58,12 @@ services:
     env_file:
        - ./evaluation-service-main/.env
     depends_on:
-      - flag-service
-      - targeting-service
-      - redis
-    restart: unless-stopped
-    networks:
-      - fiap-docker-desafio-network
+      flag-service:
+        condition: service_healthy
+      targeting-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # Postgres Service    
   postgres:
