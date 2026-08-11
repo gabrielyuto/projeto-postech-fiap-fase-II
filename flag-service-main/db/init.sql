@@ -1,3 +1,7 @@
+CREATE DATABASE flags_db;
+
+\c flags_db;
+
 CREATE TABLE IF NOT EXISTS flags (
     id SERIAL PRIMARY KEY,
 
