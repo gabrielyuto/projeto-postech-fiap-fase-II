@@ -15,6 +15,20 @@ services:
     networks:
       - fiap-docker-desafio-network
 
+  flag-service:
+    build: ./flag-service-main
+    container_name: flag-service
+    ports:
+      - "8002:8002"
+    env_file:
+       - ./flag-service-main/.env
+    depends_on:
+      - postgres
+      - auth-service
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
   # Targeting Service
   targeting-service:
     build: ./targeting-service-main
@@ -83,13 +97,11 @@ services:
       - ./auth-service-main/db/init.sql:/docker-entrypoint-initdb.d/auth-service.sql
       - ./flag-service-main/db/init.sql:/docker-entrypoint-initdb.d/flag-service.sql
       - ./targeting-service-main/db/init.sql:/docker-entrypoint-initdb.d/targeting-service.sql
-    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 3s
       timeout: 3s
       retries: 5
-    
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
