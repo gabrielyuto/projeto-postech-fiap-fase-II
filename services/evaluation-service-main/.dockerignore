@@ -1,0 +1,9 @@
+.env
+*.md
+.git/
+.gitignore
+evaluation-service   # binário local que não deve entrar no contexto
+*.exe
+bin/
+dist/
+coverage.out

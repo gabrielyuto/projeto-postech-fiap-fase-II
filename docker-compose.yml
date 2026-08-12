@@ -1,59 +1,24 @@
 services:
-
-  # Auth Service
   auth-service:
-    build: ./auth-service-main
+    build: ./services/auth-service-main
     container_name: auth-service
     ports:
       - "8001:8001"
     env_file:
-       - ./auth-service-main/.env
+       - ./services/auth-service-main/.env
     depends_on:
       postgres:
         condition: service_healthy    
     restart: unless-stopped
     networks:
-      - fiap-docker-desafio-network
-
+      - toggle-master-network
   flag-service:
-    build: ./flag-service-main
+    build: ./services/flag-service-main
     container_name: flag-service
     ports:
       - "8002:8002"
     env_file:
-       - ./flag-service-main/.env
-    depends_on:
-      - postgres
-      - auth-service
-    restart: unless-stopped
-    networks:
-      - fiap-docker-desafio-network
-
-  # Targeting Service
-  targeting-service:
-    build: ./targeting-service-main
-    container_name: targeting-service
-    ports:
-      - "8003:8003"
-    env_file:
-       - ./targeting-service-main/.env
-    depends_on:
-      flag-service:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - fiap-docker-desafio-network
-
-  # Flag Service
-  flag-service:
-    build: ./flag-service-main
-    container_name: flag-service
-    ports:
-      - "8002:8002"
-    env_file:
-       - ./flag-service-main/.env
+       - ./services/flag-service-main/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,16 +26,29 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - fiap-docker-desafio-network
-
-  # Evaluation Service
+      - toggle-master-network
+  targeting-service:
+    build: ./services/targeting-service-main
+    container_name: targeting-service
+    ports:
+      - "8003:8003"
+    env_file:
+       - ./services/targeting-service-main/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - toggle-master-network
   evaluation-service:
-    build: ./evaluation-service-main
+    build: ./services/evaluation-service-main
     container_name: evaluation-service
     ports:
       - "8004:8004"
     env_file:
-       - ./evaluation-service-main/.env
+       - ./services/evaluation-service-main/.env
     depends_on:
       flag-service:
         condition: service_healthy
@@ -78,25 +56,38 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ministack:
+        condition: service_healthy
     restart: unless-stopped
     networks:
-      - fiap-docker-desafio-network
-
-  # Postgres Service    
+      - toggle-master-network
+  analytics-service:
+    build: ./services/analytics-service-main
+    container_name: analytics-service
+    ports:
+      - "8005:8005"
+    env_file:
+      - ./services/analytics-service-main/.env
+    depends_on:
+      ministack:
+        condition: service_healthy
+      evaluation-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - toggle-master-network 
   postgres:
     image: postgres:15
     container_name: postgres
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - ./local/postgres/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./auth-service-main/db/init.sql:/docker-entrypoint-initdb.d/auth-service.sql
-      - ./flag-service-main/db/init.sql:/docker-entrypoint-initdb.d/flag-service.sql
-      - ./targeting-service-main/db/init.sql:/docker-entrypoint-initdb.d/targeting-service.sql
+      - ./services/auth-service-main/db/init.sql:/docker-entrypoint-initdb.d/auth-service.sql
+      - ./services/flag-service-main/db/init.sql:/docker-entrypoint-initdb.d/flag-service.sql
+      - ./services/targeting-service-main/db/init.sql:/docker-entrypoint-initdb.d/targeting-service.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 3s
@@ -104,11 +95,9 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - fiap-docker-desafio-network
-
-  # Redis Service
+      - toggle-master-network
   redis:
-    image: redis:7
+    image: redis:8.10.0
     container_name: redis
     ports:
       - "6379:6379"
@@ -119,10 +108,32 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - fiap-docker-desafio-network
+      - toggle-master-network
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: ministack
+    ports:
+      - "4566:4566"
+    env_file:
+       - ./local/ministack/.env
+    volumes:
+      - "./local/ministack/ready.d:/docker-entrypoint-initaws.d/ready.d"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; r=urllib.request.urlopen('http://localhost:4566/_ministack/health', timeout=5); sys.exit(0 if r.status == 200 else 1)\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - toggle-master-network
 
 volumes:
   postgres_data:
 
 networks:
-  fiap-docker-desafio-network:
+  toggle-master-network:
