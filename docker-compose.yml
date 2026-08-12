@@ -9,7 +9,8 @@ services:
     env_file:
        - ./auth-service-main/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy    
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
@@ -37,8 +38,46 @@ services:
     env_file:
        - ./targeting-service-main/.env
     depends_on:
-      - auth-service
-      - postgres
+      flag-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+  # Flag Service
+  flag-service:
+    build: ./flag-service-main
+    container_name: flag-service
+    ports:
+      - "8002:8002"
+    env_file:
+       - ./flag-service-main/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+  # Evaluation Service
+  evaluation-service:
+    build: ./evaluation-service-main
+    container_name: evaluation-service
+    ports:
+      - "8004:8004"
+    env_file:
+       - ./evaluation-service-main/.env
+    depends_on:
+      flag-service:
+        condition: service_healthy
+      targeting-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network
@@ -57,13 +96,27 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./auth-service-main/db/init.sql:/docker-entrypoint-initdb.d/auth-service.sql
       - ./flag-service-main/db/init.sql:/docker-entrypoint-initdb.d/flag-service.sql
-    
+      - ./targeting-service-main/db/init.sql:/docker-entrypoint-initdb.d/targeting-service.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 3s
       timeout: 3s
       retries: 5
-    
+    restart: unless-stopped
+    networks:
+      - fiap-docker-desafio-network
+
+  # Redis Service
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
     networks:
       - fiap-docker-desafio-network

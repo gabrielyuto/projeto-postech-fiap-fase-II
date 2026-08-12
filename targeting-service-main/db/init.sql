@@ -1,3 +1,7 @@
+CREATE DATABASE targeting_db;
+
+\c targeting_db;
+
 CREATE TABLE IF NOT EXISTS targeting_rules (
     id SERIAL PRIMARY KEY,
 
