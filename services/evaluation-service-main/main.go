@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/go-redis/redis/v8"
@@ -54,6 +55,8 @@ func main() {
 	// SQS é opcional no dev local, mas obrigatório em prod
 	sqsQueueURL := os.Getenv("AWS_SQS_URL")
 	awsRegion := os.Getenv("AWS_REGION")
+	awsEndpoint := os.Getenv("AWS_ENDPOINT") // novo
+	
 	if sqsQueueURL == "" {
 		log.Println("Atenção: AWS_SQS_URL não definida. Eventos não serão enviados.")
 	}
@@ -77,7 +80,21 @@ func main() {
 	// Cliente SQS (AWS SDK)
 	var sqsSvc *sqs.SQS
 	if sqsQueueURL != "" {
-		sess, err := session.NewSession(&aws.Config{Region: aws.String(awsRegion)})
+		config := &aws.Config{
+        Region: aws.String(awsRegion),
+    }
+
+		// Se AWS_ENDPOINT estiver definido, é ambiente local (ElasticMQ)
+    if awsEndpoint != "" {
+        config.Endpoint = aws.String(awsEndpoint)
+        config.Credentials = credentials.NewStaticCredentials(
+            os.Getenv("AWS_ACCESS_KEY_ID"),
+            os.Getenv("AWS_SECRET_ACCESS_KEY"),
+            "",
+        )
+    }
+
+		sess, err := session.NewSession(config)
 		if err != nil {
 			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
 		}

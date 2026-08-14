@@ -2,7 +2,7 @@
 # =========================================================
 # Etapa 1: Build
 # =========================================================
-FROM python:3.12.18-slim as builder
+FROM python:3.9-slim as builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,6 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # =========================================================
 # Etapa 2: Runtime
 # =========================================================
-FROM python:3.12.18-slim
+FROM python:3.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -40,5 +42,8 @@ COPY --chown=appuser:appuser . .
 USER appuser
 
 EXPOSE 8005
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"
 
 CMD ["gunicorn", "--bind", "0.0.0.0:8005", "app:app"]

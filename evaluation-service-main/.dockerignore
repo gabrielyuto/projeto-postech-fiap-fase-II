@@ -1,5 +1,0 @@
-.env
-*.md
-.git/
-.gitignore
-evaluation-service   # binário local que não deve entrar no contexto
