@@ -17,47 +17,68 @@ log = logging.getLogger(__name__)
 # Carrega .env para desenvolvimento local
 load_dotenv()
 
-# --- Configuração ---
+# --- Configuração geral (não depende de ambiente) ---
+APP_ENV = os.getenv("APP_ENV", "production").lower()
+
 AWS_REGION = os.getenv("AWS_REGION")
-AWS_ENDPOINT_URL= os.getenv("AWS_ENDPOINT_URL")
-AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY=os.getenv("AWS_SECRET_ACCESS_KEY")
-SQS_QUEUE_URL = os.getenv("AWS_SQS_URL")
-DYNAMODB_TABLE_NAME = os.getenv("AWS_DYNAMODB_TABLE")
+AWS_SQS_URL = os.getenv("AWS_SQS_URL")
+AWS_DYNAMODB_TABLE_NAME = os.getenv("AWS_DYNAMODB_TABLE")
 
-if not all([AWS_REGION, SQS_QUEUE_URL, DYNAMODB_TABLE_NAME]):
-    log.critical("Erro: AWS_REGION, AWS_SQS_URL, e AWS_DYNAMODB_TABLE devem ser definidos.")
-    sys.exit(1)
+def build_aws_clients():
+    if APP_ENV == "development":
+        AWS_SQS_ENDPOINT_URL = os.getenv("AWS_SQS_ENDPOINT_URL")
+        AWS_DYNAMODB_ENDPOINT_URL = os.getenv("AWS_DYNAMODB_ENDPOINT_URL")
 
-# --- Clientes Boto3 ---
-# Criamos a sessão uma vez
-try:
-    session = boto3.Session(region_name=AWS_REGION)
-    sqs_client = session.client(
-        "sqs",
-        endpoint_url=AWS_ENDPOINT_URL,
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
-    )
-    dynamodb_client = session.client(
-        "dynamodb",
-        endpoint_url=AWS_ENDPOINT_URL,
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
-    )
-    log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}")
-except NoCredentialsError:
-    log.critical("Credenciais da AWS não encontradas. Verifique seu ambiente.")
-    sys.exit(1)
-except Exception as e:
-    log.critical(f"Erro ao inicializar o Boto3: {e}")
-    sys.exit(1)
+        if not all([AWS_REGION, AWS_SQS_ENDPOINT_URL, AWS_DYNAMODB_ENDPOINT_URL, AWS_SQS_URL, AWS_DYNAMODB_TABLE_NAME]):
+            log.critical("Erro: variáveis obrigatórias para ambiente de DESENVOLVIMENTO não definidas.")
+            sys.exit(1)
+
+        session = boto3.Session(
+            region_name=AWS_REGION,
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "fake"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "fake"),
+            aws_session_token=os.getenv("AWS_SESSION_TOKEN", "fake"),
+        )
+
+        sqs_client = session.client("sqs", endpoint_url=AWS_SQS_ENDPOINT_URL)
+        dynamodb_client = session.client("dynamodb", endpoint_url=AWS_DYNAMODB_ENDPOINT_URL)
+
+        return sqs_client, dynamodb_client
+
+    else:
+        if not all([AWS_REGION, AWS_SQS_URL, AWS_DYNAMODB_TABLE_NAME]):
+            log.critical("Erro: variáveis obrigatórias para ambiente de PRODUÇÃO não definidas.")
+            sys.exit(1)
+
+        session = boto3.Session(region_name=AWS_REGION)
+
+        sqs_client = session.client("sqs")
+        dynamodb_client = session.client("dynamodb")
+        
+        return sqs_client, dynamodb_client
+
+
+def create_clients():
+    try:
+        sqs_client, dynamodb_client = build_aws_clients()
+
+        log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}")
+
+        return sqs_client, dynamodb_client
+    except NoCredentialsError:
+        log.critical("Credenciais da AWS não encontradas. Verifique seu ambiente.")
+        sys.exit(1)
+    except Exception as e:
+        log.critical(f"Erro ao inicializar o Boto3: {e}")
+        sys.exit(1)
 
 
 # --- SQS Worker ---
 
 def process_message(message):
     """ Processa uma única mensagem SQS e a insere no DynamoDB """
+    sqs_client, dynamodb_client = create_clients()
+
     try:
         log.info(f"Processando mensagem ID: {message['MessageId']}")
         body = json.loads(message['Body'])
@@ -76,7 +97,7 @@ def process_message(message):
         
         # Insere no DynamoDB
         dynamodb_client.put_item(
-            TableName=DYNAMODB_TABLE_NAME,
+            TableName=AWS_DYNAMODB_TABLE_NAME,
             Item=item
         )
         
@@ -84,7 +105,7 @@ def process_message(message):
         
         # Se tudo deu certo, deleta a mensagem da fila
         sqs_client.delete_message(
-            QueueUrl=SQS_QUEUE_URL,
+            QueueUrl=AWS_SQS_URL,
             ReceiptHandle=message['ReceiptHandle']
         )
         
@@ -101,11 +122,14 @@ def process_message(message):
 def sqs_worker_loop():
     """ Loop principal do worker que ouve a fila SQS """
     log.info("Iniciando o worker SQS...")
+
+    sqs_client, _ = create_clients()
+
     while True:
         try:
             # Long-polling: espera até 20s por mensagens
             response = sqs_client.receive_message(
-                QueueUrl=SQS_QUEUE_URL,
+                QueueUrl=AWS_SQS_URL,
                 MaxNumberOfMessages=10,  # Processa em lotes de até 10
                 WaitTimeSeconds=20
             )

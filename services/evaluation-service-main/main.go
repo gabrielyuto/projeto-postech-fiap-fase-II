@@ -28,6 +28,31 @@ type App struct {
 	TargetingServiceURL string
 }
 
+func defineAwsSession(region string) (*session.Session, error) {
+	environment := os.Getenv("APP_ENV")
+
+	if environment == "development" {
+		accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+		secretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+		endpoint := os.Getenv("AWS_ENDPOINT_URL")
+
+		if accessKey == "" || secretKey == "" || region == "" || endpoint == "" {
+			log.Fatal("Todas as credenciais AWS devem ser definidas em development")
+		}
+
+		cfg := &aws.Config{
+			Region:      aws.String(region),
+			Endpoint:    aws.String(endpoint),
+			Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+		}
+
+		return session.NewSession(cfg)
+	}
+
+	// Produção/staging: usa a cadeia padrão (env vars, IAM role, etc.)
+	return session.NewSession(&aws.Config{Region: aws.String(region)})
+}
+
 func main() {
 	_ = godotenv.Load() // Carrega .env para dev local
 
@@ -52,11 +77,9 @@ func main() {
 		log.Fatal("TARGETING_SERVICE_URL deve ser definida")
 	}
 
-	// SQS é opcional no dev local, mas obrigatório em prod
 	sqsQueueURL := os.Getenv("AWS_SQS_URL")
 	awsRegion := os.Getenv("AWS_REGION")
-	awsEndpoint := os.Getenv("AWS_ENDPOINT") // novo
-	
+
 	if sqsQueueURL == "" {
 		log.Println("Atenção: AWS_SQS_URL não definida. Eventos não serão enviados.")
 	}
@@ -80,21 +103,8 @@ func main() {
 	// Cliente SQS (AWS SDK)
 	var sqsSvc *sqs.SQS
 	if sqsQueueURL != "" {
-		config := &aws.Config{
-        Region: aws.String(awsRegion),
-    }
+		sess, err := defineAwsSession(awsRegion)
 
-		// Se AWS_ENDPOINT estiver definido, é ambiente local (ElasticMQ)
-    if awsEndpoint != "" {
-        config.Endpoint = aws.String(awsEndpoint)
-        config.Credentials = credentials.NewStaticCredentials(
-            os.Getenv("AWS_ACCESS_KEY_ID"),
-            os.Getenv("AWS_SECRET_ACCESS_KEY"),
-            "",
-        )
-    }
-
-		sess, err := session.NewSession(config)
 		if err != nil {
 			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
 		}

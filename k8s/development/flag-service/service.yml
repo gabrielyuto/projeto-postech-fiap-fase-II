@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flag-service
+  namespace: development
+spec:
+  selector:
+    app: flag-service
+  ports:
+  - port: 8002
+    targetPort: 8002
+  type: ClusterIP
