@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dynamodb-config
+  namespace: development
+data:
+  AWS_REGION: "us-east-1"
+  DYNAMO_ENDPOINT: "http://dynamodb-local:8000"
