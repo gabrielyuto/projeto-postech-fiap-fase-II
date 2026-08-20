@@ -4,9 +4,9 @@ metadata:
   name: auth-service
   namespace: development
 spec:
+  type: ClusterIP
   selector:
     app: auth-service
   ports:
   - port: 8001
     targetPort: 8001
-  type: ClusterIP

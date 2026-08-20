@@ -4,6 +4,7 @@ metadata:
   name: redis
   namespace: development
 spec:
+  type: ClusterIP
   clusterIP: None
   selector:
     app: redis
