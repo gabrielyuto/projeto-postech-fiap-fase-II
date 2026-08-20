@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticmq-config
+  namespace: development
+data:
+  elasticmq.conf: |
+    include classpath("application.conf")
+
+    node-address {
+      protocol = http
+      host = "*"
+      port = 9324
+      context-path = ""
+    }
+
+    rest-sqs {
+      enabled = true
+      bind-port = 9324
+      bind-hostname = "0.0.0.0"
+      sqs-limits = strict
+    }
+
+    queues {
+      evaluation-queue {
+        defaultVisibilityTimeout = 30 seconds
+        delay = 0 seconds
+        receiveMessageWait = 0 seconds
+      }
+    }
