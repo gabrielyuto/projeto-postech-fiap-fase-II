@@ -4,9 +4,10 @@ metadata:
   name: evaluation-service
   namespace: development
 spec:
+  type: NodePort
   selector:
     app: evaluation-service
   ports:
   - port: 8004
     targetPort: 8004
-  type: ClusterIP
+    nodePort: 30004

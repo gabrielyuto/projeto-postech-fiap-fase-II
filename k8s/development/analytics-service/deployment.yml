@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flag-service
-  namespace: development
+  name:  analytics-service
+  namespace:  development
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: flag-service
+      name:  analytics-service
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
       maxSurge: 1
+      maxUnavailable: 1
   template:
     metadata:
       labels:
-        app: flag-service
+        name:  analytics-service
     spec:
       containers:
-      - name: flag-service
-        image: projeto-postech-fiap-fase-ii-flag-service:latest
+      - name:  analytics-service
+        image:  projeto-postech-fiap-fase-ii-analytics-service:latest
         imagePullPolicy: Never
         ports:
         - name: http
-          containerPort: 8002
+          containerPort: 8005
         envFrom:
         - configMapRef:
-            name: flag-service-config
+            name: analytics-service-config
         - secretRef:
-            name: flag-service-secret
+            name: analytics-service-secret
         resources:
           requests:
             cpu: "100m"
@@ -40,13 +40,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8002
+            port: 8005
           initialDelaySeconds: 10
           periodSeconds: 15
         readinessProbe:
           httpGet:
             path: /health
-            port: 8002
+            port: 8005
           initialDelaySeconds: 5
-          periodSeconds: 10
-      
+          timeoutSeconds: 10

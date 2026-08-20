@@ -1,22 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dynamodb-local
+  name: dynamodb
   namespace: development
-  labels:
-    app: dynamodb-local
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dynamodb-local
+      app: dynamodb
   template:
     metadata:
       labels:
-        app: dynamodb-local
+        app: dynamodb
     spec:
       containers:
-        - name: dynamodb-local
+        - name: dynamodb
           image: amazon/dynamodb-local:latest
           command: ["java"]
           args:
@@ -32,7 +30,7 @@ spec:
             - configMapRef:
                 name: dynamodb-config
             - secretRef:
-                name: dynamodb-credentials
+                name: dynamodb-credential
           volumeMounts:
             - name: dynamodb-storage
               mountPath: /home/dynamodblocal/data
@@ -56,4 +54,4 @@ spec:
       volumes:
         - name: dynamodb-storage
           persistentVolumeClaim:
-            claimName: dynamodb-data
+            claimName: dynamodb-data-pvc

@@ -4,9 +4,10 @@ metadata:
   name: flag-service
   namespace: development
 spec:
+  type: ClusterIP
   selector:
     app: flag-service
   ports:
   - port: 8002
     targetPort: 8002
-  type: ClusterIP
+    

@@ -4,9 +4,9 @@ metadata:
   name: targeting-service
   namespace: development
 spec:
+  type: ClusterIP
   selector:
     app: targeting-service
   ports:
   - port: 8003
     targetPort: 8003
-  type: ClusterIP
