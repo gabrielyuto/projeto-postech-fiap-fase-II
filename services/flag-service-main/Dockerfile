@@ -37,7 +37,7 @@ RUN groupadd --system appgroup && useradd --system --no-create-home -g appgroup 
 
 COPY --from=builder /opt/venv /opt/venv
 
-COPY --chown=appuser . .
+COPY --chown=appuser:appgroup . .
 
 USER appuser
 
