@@ -1,0 +1,62 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: development
+
+resources:
+  - namespace.yaml
+  - ../../base
+  - infra/postgres
+  - infra/redis
+  - infra/sqs
+  - infra/dynamodb
+  - ingress.yaml
+  - secrets/auth-service-secret.yaml
+  - secrets/flag-service-secret.yaml
+  - secrets/targeting-service-secret.yaml
+  - secrets/evaluation-service-secret.yaml
+  - secrets/analytics-service-secret.yaml
+  - secrets/postgres-secret.yaml
+  - secrets/redis-secret.yaml
+  - secrets/dynamodb-secret.yaml
+
+# APP_ENV controla, no código dos serviços, se eles usam os emuladores locais
+# (elasticmq/dynamodb-local) ou os SDKs "reais" da AWS.
+configMapGenerator:
+  - name: evaluation-service-config
+    behavior: merge
+    literals:
+      - APP_ENV=development
+  - name: analytics-service-config
+    behavior: merge
+    literals:
+      - APP_ENV=development
+
+# As imagens são construídas localmente com `minikube image build` (ver
+# k8s/README.md) e nunca devem ser puxadas de um registry externo.
+images:
+  - name: auth-service
+    newName: projeto-postech-fiap-fase-ii-auth-service
+    newTag: latest
+  - name: flag-service
+    newName: projeto-postech-fiap-fase-ii-flag-service
+    newTag: latest
+  - name: targeting-service
+    newName: projeto-postech-fiap-fase-ii-targeting-service
+    newTag: latest
+  - name: evaluation-service
+    newName: projeto-postech-fiap-fase-ii-evaluation-service
+    newTag: latest
+  - name: analytics-service
+    newName: projeto-postech-fiap-fase-ii-analytics-service
+    newTag: latest
+
+patches:
+  - target:
+      kind: Deployment
+      labelSelector: "app in (auth-service,flag-service,targeting-service,evaluation-service,analytics-service)"
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+  - path: patches/evaluation-service-nodeport.yaml

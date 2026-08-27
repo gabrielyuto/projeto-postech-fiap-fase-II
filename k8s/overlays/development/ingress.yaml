@@ -1,0 +1,21 @@
+# Requer o addon de ingress do minikube: `minikube addons enable ingress`.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: evaluation-service
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # remove o prefixo /evaluation-service antes de encaminhar ao backend
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /evaluation-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: evaluation-service
+                port:
+                  number: 8004

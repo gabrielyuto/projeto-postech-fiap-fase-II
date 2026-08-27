@@ -1,0 +1,40 @@
+# Job de execução única: aplica o mesmo schema usado em desenvolvimento
+# (k8s/base/postgres-init) contra a instância RDS real, usando credenciais
+# administrativas em secrets/postgres-admin-secret.yaml.
+# Rode "kubectl delete job postgres-schema-init" antes de reaplicar, já que
+# Jobs concluídos não são recriados automaticamente pelo kustomize/kubectl apply.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-schema-init
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql-init
+          image: postgres:16
+          envFrom:
+            - secretRef:
+                name: postgres-admin-secret
+          env:
+            - name: PGSSLMODE
+              value: require
+          command:
+            - bash
+            - -c
+            - |
+              set -uo pipefail
+              for f in /scripts/*.sql; do
+                echo "Aplicando $f..."
+                PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -f "$f" \
+                  || echo "Aviso: $f pode já ter sido aplicado antes, seguindo em frente."
+              done
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /scripts
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: postgres-init-scripts
