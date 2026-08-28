@@ -131,3 +131,46 @@ Job `postgres-schema-init` no primeiro `apply` (o RDS não roda `docker-entrypoi
 
 Detalhes adicionais (segredos, geração da chave real do `evaluation-service`, migração da
 estrutura antiga) estão em [k8s/README.md](k8s/README.md).
+
+## Teste de carga (HPA) com k6
+
+O script em [load_test/hpa-load-test.js](load_test/hpa-load-test.js) gera carga sustentada em
+`/evaluation-service/evaluate`, o que também publica eventos no SQS e alimenta o
+`analytics-service` — ou seja, um único teste exercita o HPA dos 5 microsserviços. Pré-requisito:
+[k6](https://k6.io/docs/get-started/installation/) instalado (`brew install k6`).
+
+### Contra o Minikube (overlay `development`)
+
+O Ingress do Minikube não é acessível diretamente do host sem `sudo`/`minikube tunnel`; a forma
+mais simples é expor o `ingress-nginx-controller` via `port-forward`:
+
+```bash
+# Terminal 1: mantenha rodando durante todo o teste
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+```
+
+```bash
+# Terminal 2: roda o teste (~4 min: 30s ramp-up, 3min sustentado a 50 VUs, 30s ramp-down)
+k6 run -e BASE_URL="http://localhost:8080" load_test/hpa-load-test.js
+```
+
+### Contra o EKS (overlay `production`)
+
+Use a URL pública do Load Balancer do `ingress-nginx`:
+
+```bash
+INGRESS_HOST=$(kubectl get ingress microservices -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+k6 run -e BASE_URL="http://$INGRESS_HOST" load_test/hpa-load-test.js
+```
+
+### Acompanhando o HPA durante o teste
+
+Em outro terminal, observe as réplicas escalando (2 → até 5) e voltando ao mínimo alguns minutos
+após o teste terminar (janela padrão de estabilização de scale-down do HPA é de 5 minutos):
+
+```bash
+kubectl get hpa -n development -w   # ou -n production
+```
+
+Variáveis opcionais do script: `FLAG_NAME` (padrão `demo-flag`) para testar contra uma flag
+específica já cadastrada no `flag-service`.
