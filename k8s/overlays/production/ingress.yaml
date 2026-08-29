@@ -1,0 +1,50 @@
+# Sem Route53/domínio próprio: sem "host", a regra vale para qualquer Host
+# recebido, então funciona direto pelo hostname público do NLB do ingress-nginx.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # remove o prefixo /<serviço> antes de encaminhar ao backend correspondente
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /auth-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001
+          - path: /flag-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: flag-service
+                port:
+                  number: 8002
+          - path: /targeting-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: targeting-service
+                port:
+                  number: 8003
+          - path: /evaluation-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: evaluation-service
+                port:
+                  number: 8004
+          - path: /analytics-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 8005

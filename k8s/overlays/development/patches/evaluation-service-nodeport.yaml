@@ -1,0 +1,12 @@
+# Preserva o acesso via NodePort (usado por `minikube service`) para o único
+# serviço público da arquitetura; os demais seguem ClusterIP (uso interno).
+apiVersion: v1
+kind: Service
+metadata:
+  name: evaluation-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8004
+    targetPort: 8004
+    nodePort: 30004

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: dynamodb-config
-  namespace: development
-data:
-  DYNAMO_ENDPOINT: "http://dynamodb:8000"
