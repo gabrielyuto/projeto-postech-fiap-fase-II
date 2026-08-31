@@ -5,12 +5,12 @@ namespace: development
 
 resources:
   - namespace.yaml
+  - ingress.yaml
   - ../../base
   - infra/postgres
   - infra/redis
   - infra/sqs
   - infra/dynamodb
-  - ingress.yaml
   - secrets/auth-service-secret.yaml
   - secrets/flag-service-secret.yaml
   - secrets/targeting-service-secret.yaml
@@ -60,3 +60,15 @@ patches:
         path: /spec/template/spec/containers/0/imagePullPolicy
         value: Never
   - path: patches/evaluation-service-nodeport.yaml
+
+replicas:
+  - name: analytics-service
+    count: 1
+  - name: evaluation-service
+    count: 1
+  - name: auth-service
+    count: 1
+  - name: flag-service
+    count: 1
+  - name: targeting-service
+    count: 1

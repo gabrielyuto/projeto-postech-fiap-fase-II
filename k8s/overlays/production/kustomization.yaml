@@ -54,3 +54,15 @@ images:
   - name: analytics-service
     newName: 180981210379.dkr.ecr.us-east-1.amazonaws.com/togglemaster/analytics-service
     newTag: latest
+
+replicas:
+  - name: analytics-service
+    count: 2
+  - name: evaluation-service
+    count: 2
+  - name: auth-service
+    count: 2
+  - name: flag-service
+    count: 2
+  - name: targeting-service
+    count: 2
