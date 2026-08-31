@@ -5,7 +5,7 @@ metadata:
   labels:
     app: analytics-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: analytics-service

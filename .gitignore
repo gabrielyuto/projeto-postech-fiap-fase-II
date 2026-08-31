@@ -2,3 +2,4 @@
 /infra
 /postgres
 .env
+terraform/
